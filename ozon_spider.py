@@ -42,14 +42,25 @@ class OzonSpider(feapder.Spider):
         'upgrade-insecure-requests': '1',
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
     }
-    accessToken = '4.160357014.QUOx4wbYSgmYs1I6de3aHQ.38.AQSLHEDEzUeMlQ2J0wW482EBPq-lZDbAQTsLu_jGhavfJiMbPPt9r__le-wjyVeMIvl7SfWINvlDexwhAVMGEe0.20240402125018.20240411170908.S453CxdJykHTkSDfivSfYJHo-JQJgEhhOT1SJVo7IsY'
+    accessToken = '4.160357014.QUOx4wbYSgmYs1I6de3aHQ.38.AVvZ4DMpCZD8Jo1Nq7IU05aKYRrx2ZhVcW9TkqMosX19WrAjVDbrGBFl9xl--axZJopJvYDPklmeh0MYKgVkQ9E.20240402125018.20240412062403.xdI4Pr4r5jkeXNZftxJI3BDityGhw6IfFbrxsj0atsE'
 
     # 这种方式获取的cookies 需要科学
-    file_path = './data.xlsx'
-    df = pl.read_excel(file_path,
-                       schema_overrides={
-                           "可用性 (%)": pl.Float64, '因缺货而错过的订单金额（₽）': pl.Float64, },
-                       )
+    file_path = './data.csv'
+    if file_path.endswith('.xlsx'):
+        df = pl.read_excel(file_path,
+                           schema_overrides={
+                               "可用性 (%)": pl.Float64, '因缺货而错过的订单金额（₽）': pl.Float64, },
+                           )
+    elif file_path.endswith('.csv'):
+        df = pl.read_csv(file_path,
+                         dtypes={
+                             "可用性 (%)": pl.Float64,
+                             "因缺货而错过的订单金额（₽）": pl.Utf8,
+                         }
+                         )
+        df = df.with_columns(
+            pl.col("因缺货而错过的订单金额（₽）").map_elements(lambda x: x.replace(',', ''), return_dtype=pl.Float64)
+        )
 
     def start_requests(self):
         gencookies = GenCookie()  # 实例化可以更换各个地方的cookie
@@ -103,12 +114,13 @@ class OzonSpider(feapder.Spider):
         # print(response.json())
         try:
             data = response.json()['items'][0]
-            print(data)
+            # print(data)
             item = Item()
             item.table_name = 'ozon_product'
             for i, col in enumerate(self.df.columns):
                 item[col] = row[i]
             item['Imageurl'] = data['photo']
+            print("商品图片：", data['photo'])
             yield item
 
         except Exception as e:
