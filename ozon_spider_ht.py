@@ -47,8 +47,8 @@ class OzonSpider(feapder.Spider):
     # refresh_token = '4.160357014.QUOx4wbYSgmYs1I6de3aHQ.38.AZJYXl1bV_KgiMJ41NcuSovBUqZYcwjdvpryVHmrAxV_xNuAHla5kpDHOlbsZChJdWjjvluTOxBO4MRB4w16Hq0.20240402125018.20240412122432.ItuvlXIcNhNvo0rHk20D75QRJ1FQinYExcSfGvpQy28'
 
     # 这种方式获取的cookies 需要科学
-    file_path = '/home/dav/Github/ozon_imgeurl/split_csvs/part_3.csv'
-    # file_path = ''
+    # file_path = '/home/dav/Github/ozon_imgeurl/split_csvs/part_9.csv'
+    file_path = ''
     db = pymongo.MongoClient('mongodb://localhost:27017/')
     db = db['ozon']
     collection = db['ozon_product_unimg']
@@ -68,7 +68,7 @@ class OzonSpider(feapder.Spider):
         #     pl.col("因缺货而错过的订单金额（₽）").map_elements(lambda x: x.replace(',', ''), return_dtype=pl.Float64)
         # )
     else:
-        docs = list(collection.find({},{"_id":0}))  #获取图片链接为空的数据 不带_id
+        docs = list(collection.find({},{"_id":0}).limit(10000).skip(0))  #获取图片链接为空的数据 不带_id
         #删除掉Imageurl为空的数据
         # result = collection.delete_many({"Imageurl": ""})
         # print("删除了", result.deleted_count, "条数据")
@@ -144,7 +144,8 @@ class OzonSpider(feapder.Spider):
             #     item[col] = row[i]
             # 删除数据库中这行数据
             if self.file_path == '':  #如果是数据库,获取图片链接后删除数据库中的数据
-                result = self.collection.delete_one({"ID": row[self.df.columns.index("ID")]})
+                result = self.collection.delete_many({"ID": item['ID']})
+                print("数据库删除了", result.deleted_count, "条数据")
         except Exception as e:
             if self.file_path!='':  # 不是读取数据库的数据
                 item.table_name = 'ozon_product_unimg'
